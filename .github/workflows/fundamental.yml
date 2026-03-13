@@ -1,0 +1,34 @@
+name: Monthly Fundamental Mining
+
+on:
+  schedule:
+    # Setiap tanggal 28 jam 07:00 WIB (UTC+7) = 00:00 UTC
+    - cron: '0 0 28 * *'
+  workflow_dispatch: # Bisa juga di-trigger manual
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+jobs:
+  mine:
+    runs-on: ubuntu-latest
+    name: "Smart Mining Fundamental"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install requests pandas numpy supabase python-dotenv
+
+      - name: Run Smart Mining
+        working-directory: ./src
+        run: |
+          python fundamental.py --smart

@@ -1,0 +1,10 @@
+{
+  "suffix": ".JK",
+  "tickers": [
+    "AADI", "ADMR", "ADRO", "AKRA", "AMMN", "AMRT", "ANTM", "ASII", "BBCA", "BBNI", 
+    "BBRI", "BBTN", "BMRI", "BREN", "BRIS", "BRPT", "CPIN", "CTRA", "EXCL", "GOTO", 
+    "ICBP", "INCO", "INDF", "INKP", "ISAT", "ITMG", "JPFA", "JSMR", "KLBF", "MAPA", 
+    "MAPI", "MBMA", "MDKA", "MEDC", "NCKL", "PGAS", "PGEO", "PTBA", "SCMA", "SMGR", 
+    "TLKM", "TOWR", "UNTR", "UNVR", "ARTO"
+  ]
+}

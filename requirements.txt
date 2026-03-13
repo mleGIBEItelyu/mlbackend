@@ -1,0 +1,17 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+yfinance
+seaborn
+jupyter
+python-dotenv
+lightgbm
+optuna
+shap
+joblib
+xlrd
+openpyxl
+supabase
+xgboost
+lxml

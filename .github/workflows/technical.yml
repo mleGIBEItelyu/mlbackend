@@ -1,0 +1,54 @@
+name: Daily Technical Scraping
+
+on:
+  schedule:
+    # Jam 18:00 WIB (UTC+7) = 11:00 UTC, Senin-Jumat
+    - cron: '0 11 * * 1-5'
+  workflow_dispatch: # Bisa juga di-trigger manual
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Robot 1: 9 saham
+          - group: "1"
+            tickers: "AADI,ADMR,ADRO,AKRA,AMMN,AMRT,ANTM,ASII,BBCA"
+          # Robot 2: 9 saham
+          - group: "2"
+            tickers: "BBNI,BBRI,BBTN,BMRI,BREN,BRIS,BRPT,CPIN,CTRA"
+          # Robot 3: 9 saham
+          - group: "3"
+            tickers: "EXCL,GOTO,ICBP,INCO,INDF,INKP,ISAT,ITMG,JPFA"
+          # Robot 4: 9 saham
+          - group: "4"
+            tickers: "JSMR,KLBF,MAPA,MAPI,MBMA,MDKA,MEDC,NCKL,PGAS"
+          # Robot 5: 9 saham
+          - group: "5"
+            tickers: "PGEO,PTBA,SCMA,SMGR,TLKM,TOWR,UNTR,UNVR,ARTO"
+
+    name: "Robot ${{ matrix.group }}"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install yfinance pandas numpy supabase python-dotenv
+
+      - name: Run Technical Scraping
+        working-directory: ./src
+        run: |
+          python technical.py --tickers "${{ matrix.tickers }}"
