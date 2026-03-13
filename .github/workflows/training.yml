@@ -1,0 +1,80 @@
+name: ML Training Pipeline
+
+on:
+  schedule:
+    # Fine Tuning: Setiap tanggal 1 jam 00:00 UTC (07:00 WIB)
+    - cron: '0 0 1 * *'
+    # Full Training: Setiap tanggal 1 jam 00:00 UTC, setiap 4 bulan (Jan, Mei, Sep)
+    - cron: '0 0 1 */4 *'
+  workflow_dispatch:
+    inputs:
+      trials:
+        description: 'Number of Optuna trials'
+        required: true
+        default: '5'
+      tickers:
+        description: 'Common-separated tickers (leave empty for all)'
+        required: false
+        default: ''
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: "1"
+            tickers: "AADI,ADMR,ADRO,AKRA,AMMN,AMRT,ANTM,ASII,BBCA"
+          - group: "2"
+            tickers: "BBNI,BBRI,BBTN,BMRI,BREN,BRIS,BRPT,CPIN,CTRA"
+          - group: "3"
+            tickers: "EXCL,GOTO,ICBP,INCO,INDF,INKP,ISAT,ITMG,JPFA"
+          - group: "4"
+            tickers: "JSMR,KLBF,MAPA,MAPI,MBMA,MDKA,MEDC,NCKL,PGAS"
+          - group: "5"
+            tickers: "PGEO,PTBA,SCMA,SMGR,TLKM,TOWR,UNTR,UNVR,ARTO"
+
+    name: "Train Group ${{ matrix.group }}"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install xgboost optuna pandas numpy supabase python-dotenv joblib scikit-learn requests yfinance huggingface-hub
+
+      - name: Determine Trials
+        id: config
+        run: |
+          # If manual trigger
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "trials=${{ github.event.inputs.trials }}" >> $GITHUB_OUTPUT
+          # If scheduled every 4 months
+          elif [ "${{ github.event.schedule }}" == "0 0 1 */4 *" ]; then
+            echo "trials=50" >> $GITHUB_OUTPUT
+          # If scheduled monthly
+          else
+            echo "trials=5" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Training
+        working-directory: ./src
+        run: |
+          # Use input tickers if provided, else use matrix tickers
+          TICKERS_TO_RUN="${{ matrix.tickers }}"
+          if [ "${{ github.event.inputs.tickers }}" != "" ]; then
+             TICKERS_TO_RUN="${{ github.event.inputs.tickers }}"
+          fi
+          python run_multi.py --tickers "$TICKERS_TO_RUN" --trials ${{ steps.config.outputs.trials }} --no-backtest --upload

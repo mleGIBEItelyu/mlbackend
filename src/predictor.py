@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from features import prepare_features
+from hf_utils import download_model
 
 # ============================================================
 #  KONFIGURASI
@@ -36,9 +37,12 @@ def generate_daily_signals():
     for ticker in tickers:
         model_path = os.path.join(MODELS_DIR, f"{ticker}.pkl")
         
-        # Cek apakah model untuk ticker ini sudah dilatih
+        # Cek apakah model untuk ticker ini sudah dilatih (jika tidak, coba download dari HF)
         if not os.path.exists(model_path):
-            continue
+            downloaded = download_model(ticker, MODELS_DIR)
+            if not downloaded:
+                continue
+            model_path = downloaded
             
         try:
             # 2. Load Ensemble Model
