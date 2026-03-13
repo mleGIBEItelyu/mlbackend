@@ -93,9 +93,10 @@ class EnsembleModeling:
 
         return X_tech, X_fund, y, df
 
-    def _tune(self, X, y, label=""):
+    def _tune(self, X, y, label="", n_trials=None):
         """Tuning agresif dengan Optuna — search space yang luas."""
-        print(f"  Tuning {label} model ({N_OPTUNA_TRIALS} trials)...")
+        trials = n_trials if n_trials is not None else self.n_trials
+        print(f"  Tuning {label} model ({trials} trials)...")
 
         def objective(trial):
             params = {
@@ -149,12 +150,12 @@ class EnsembleModeling:
             self.n_trials = n_trials
             
         # 1. Tune & Train Technical Models
-        self.best_tech_params = self._tune(X_tech_train, y_train, label="TECHNICAL")
+        self.best_tech_params = self._tune(X_tech_train, y_train, label="TECHNICAL", n_trials=n_trials)
         self.tech_models = self._train_ensemble(X_tech_train, y_train, self.best_tech_params, label="TECHNICAL")
 
         # 2. Tune & Train Fundamental Models (jika ada fitur)
         if not X_fund_train.empty and len(self.fund_features) > 0:
-            self.best_fund_params = self._tune(X_fund_train, y_train, label="FUNDAMENTAL")
+            self.best_fund_params = self._tune(X_fund_train, y_train, label="FUNDAMENTAL", n_trials=n_trials)
             self.fund_models = self._train_ensemble(X_fund_train, y_train, self.best_fund_params, label="FUNDAMENTAL")
         else:
             print("  [WARN] No fundamental features, using technical only (100%)")
