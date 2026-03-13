@@ -13,13 +13,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
 TICKERS_PATH = os.path.join(PROJECT_ROOT, 'tickers.json')
 
-def scrape_technical(ticker_list=None):
+def scrape_technical(ticker_list=None, period='max'):
     """
     Scrape data teknikal dan indikator.
     
     Args:
         ticker_list: List of ticker codes (e.g. ['BBCA','BBRI']).
                      Jika None, ambil semua dari tickers.json.
+        period: Periode data yfinance (e.g. 'max', '7d', '1mo').
     """
     with open(TICKERS_PATH, 'r') as f:
         ticker_config = json.load(f)
@@ -34,15 +35,15 @@ def scrape_technical(ticker_list=None):
 
     tickers_yf = [t + suffix for t in tickers]
 
-    print(f'Starting technical scraping for {len(tickers_yf)} tickers...')
+    print(f'Starting technical scraping for {len(tickers_yf)} tickers (Period: {period})...')
     supabase = get_supabase_client()
     total_rows = 0
 
     for ticker_yf in tickers_yf:
         ticker_code = ticker_yf.replace(suffix, '')
         
-        # Download ALL historical data (since IPO / earliest available)
-        data = yf.download(ticker_yf, period='max', progress=False)
+        # Download data berdasarkan period yang diminta
+        data = yf.download(ticker_yf, period=period, progress=False)
         
         if data.empty:
             print(f'[SKIP] {ticker_yf} - no data')
@@ -107,10 +108,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Scrape technical data')
     parser.add_argument('--tickers', type=str, default=None,
                         help='Comma-separated list of tickers, e.g. "BBCA,BBRI,TLKM"')
+    parser.add_argument('--period', type=str, default='max',
+                        help='yfinance period (e.g. "max", "7d", "1mo"). Default is "max".')
     args = parser.parse_args()
 
+    t_list = None
     if args.tickers:
-        ticker_list = [t.strip() for t in args.tickers.split(',')]
-        scrape_technical(ticker_list)
-    else:
-        scrape_technical()
+        t_list = [t.strip() for t in args.tickers.split(',')]
+    
+    scrape_technical(ticker_list=t_list, period=args.period)

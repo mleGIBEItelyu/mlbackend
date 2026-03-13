@@ -51,4 +51,4 @@ jobs:
       - name: Run Technical Scraping
         working-directory: ./src
         run: |
-          python technical.py --tickers "${{ matrix.tickers }}"
+          python technical.py --tickers "${{ matrix.tickers }}" --period 7d
