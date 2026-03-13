@@ -28,11 +28,11 @@ def generate_daily_signals():
 
     results = []
     
-    print(f"\n{'='*60}")
-    print(f"  STOCK FORECASTING DASHBOARD - {datetime.now().strftime('%Y-%m-%d')}")
-    print(f"{'='*60}")
-    print(f"{'Ticker':<8} | {'Last Close':<10} | {'Pred Next':<10} | {'Change':<8} | {'Signal':<8} | {'Conf':<6}")
-    print(f"{'-'*75}")
+    print(f"\n{'='*75}")
+    print(f"  STOCK FORECASTING DASHBOARD (7-DAY RANGE) - {datetime.now().strftime('%Y-%m-%d')}")
+    print(f"{'='*75}")
+    print(f"{'Ticker':<8} | {'Last Close':<10} | {'7D Return':<10} | {'Range (%)':<15} | {'Signal':<8} | {'Conf':<6}")
+    print(f"{'-'*85}")
 
     for ticker in tickers:
         model_path = os.path.join(MODELS_DIR, f"{ticker}.pkl")
@@ -75,55 +75,65 @@ def generate_daily_signals():
             # Ambil baris terakhir (Hari ini)
             latest_data = df.iloc[[-1]].copy()
             
-            # 5. Prediksi
+            # 5. Prediksi (Hasil adalah % Return 7-Hari dalam desimal)
             X_tech = latest_data[tech_features]
             
-            # Fallback jika fundamental tidak ada (e.g. emiten baru)
+            # Fallback jika fundamental tidak ada
             fund_cols_present = [c for c in fund_features if c in latest_data.columns]
             X_fund = latest_data[fund_cols_present] if fund_cols_present else pd.DataFrame()
             
-            # Prediksi Ensemble (rata-rata)
+            # Prediksi Ensemble (rata-rata % Return)
             all_tech_preds = np.array([m.predict(X_tech)[0] for m in tech_models])
             tech_pred_avg = all_tech_preds.mean()
             
             if fund_models and not X_fund.empty:
                 all_fund_preds = np.array([m.predict(X_fund)[0] for m in fund_models])
                 fund_pred_avg = all_fund_preds.mean()
-                final_pred = tech_weight * tech_pred_avg + fund_weight * fund_pred_avg
+                final_return_pred = tech_weight * tech_pred_avg + fund_weight * fund_pred_avg
                 
-                # Hitung "Agreement" (berapa persetujuan antar model)
-                # Tech agreement: berapa % model tech bilang naik
-                tech_up = (all_tech_preds > latest_data['close'].values[0]).mean()
-                fund_up = (all_fund_preds > latest_data['close'].values[0]).mean()
+                # Agreement: berapa % model setuju arah harganya (Return > 0)
+                tech_up = (all_tech_preds > 0).mean()
+                fund_up = (all_fund_preds > 0).mean()
                 agreement = (tech_weight * tech_up + fund_weight * fund_up) * 100
             else:
-                final_pred = tech_pred_avg
-                agreement = (all_tech_preds > latest_data['close'].values[0]).mean() * 100
+                final_return_pred = tech_pred_avg
+                agreement = (all_tech_preds > 0).mean() * 100
             
-            # 6. Signal Logic
-            last_close = latest_data['close'].values[0]
-            pred_change = ((final_pred / last_close) - 1) * 100
+            # 6. Range Calculation (+/- MAE)
+            mae_val = package.get('mae_score', 0.02) # Default 2% jika model lama
+            range_low_val = final_return_pred - mae_val
+            range_high_val = final_return_pred + mae_val
             
-            # Signal: BUY jika naik > 0.5%, SELL jika turun < -0.5%, else HOLD
-            if pred_change > 0.5:
+            range_low_pct = range_low_val * 100
+            range_high_pct = range_high_val * 100
+            pred_close_7d = latest_data['close'].values[0] * (1 + final_return_pred)
+            
+            # 7. Conservative Signal Logic
+            # BUY if even the worst-case (low) is positive
+            if range_low_val > 0:
                 signal = "BUY"
-            elif pred_change < -0.5:
+            # SELL if even the best-case (high) is negative
+            elif range_high_val < 0:
                 signal = "SELL"
+            # CROSS ZERO: Wait and see (Uncertainty area)
             else:
-                signal = "HOLD"
+                signal = "WAIT&SEE"
                 
-            # Formatting Output
-            color_signal = signal
+            # 8. Formatting & Display
+            range_str = f"{range_low_pct:>+5.1f}% to {range_high_pct:>+5.1f}%"
+            last_close = latest_data['close'].values[0]
             date_str = latest_data['date'].iloc[0].strftime('%Y-%m-%d')
             
-            print(f"{ticker:<8} | {last_close:>10,.0f} | {final_pred:>10,.0f} | {pred_change:>+7.2f}% | {signal:<8} | {agreement:>5.0f}%")
+            print(f"{ticker:<8} | {last_close:>10,.0f} | {pred_close_7d:>10,.0f} | {range_str:<15} | {signal:<8} | {agreement:>5.0f}%")
             
             results.append({
                 'ticker': ticker,
                 'date': date_str,
                 'last_close': float(last_close),
-                'pred_next_close': float(final_pred),
-                'change_pct': float(pred_change),
+                'pred_7d_close': float(pred_close_7d),
+                'return_7d_pct': float(final_return_pred * 100),
+                'range_min_pct': float(range_low_pct),
+                'range_max_pct': float(range_high_pct),
                 'signal': signal,
                 'confidence': float(agreement)
             })

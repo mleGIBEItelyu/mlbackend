@@ -42,6 +42,7 @@ class EnsembleModeling:
         self.fund_features = None
         self.best_tech_params = None
         self.best_fund_params = None
+        self.mae_score = 0.0  # Menyimpan hasil MAE evaluasi
 
         # Paths
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -54,8 +55,9 @@ class EnsembleModeling:
         df['date'] = pd.to_datetime(df['date'])
         df = df.sort_values('date').reset_index(drop=True)
 
-        # Target: harga close BESOK
-        df["target_t1"] = df[self.target_column].shift(-1)
+        # Target: PERSENTASE PERUBAHAN harga close 7 hari kedepan (7-Day Horizon)
+        # (Close_H+7 / Close_H) - 1
+        df["target_t1"] = (df[self.target_column].shift(-7) / df[self.target_column]) - 1
 
         # Lag features (data masa lalu)
         for lag in [1, 2, 3, 5, 10]:
@@ -182,6 +184,7 @@ class EnsembleModeling:
         mae = mean_absolute_error(y_test, preds)
         rmse = np.sqrt(mean_squared_error(y_test, preds))
         r2 = r2_score(y_test, preds)
+        self.mae_score = mae # Simpan MAE (dalam desimal return)
 
         print(f"\n{'='*50}")
         print(f"  ENSEMBLE EVALUATION: {self.ticker}")
@@ -209,6 +212,7 @@ class EnsembleModeling:
             "tech_weight": TECH_WEIGHT,
             "fund_weight": FUND_WEIGHT,
             "n_ensemble": N_ENSEMBLE,
+            "mae_score": self.mae_score, # Sertakan MAE untuk pembuatan range di Predictor
         }, save_path)
         print(f"  Ensemble saved to {save_path}")
 
