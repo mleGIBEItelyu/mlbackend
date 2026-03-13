@@ -43,10 +43,16 @@ def scrape_technical(ticker_list=None, period='max'):
         ticker_code = ticker_yf.replace(suffix, '')
         
         # Download data berdasarkan period yang diminta
-        data = yf.download(ticker_yf, period=period, progress=False)
+        # Jika period terlalu pendek (e.g. 7d), indikator window 20 tidak akan terhitung.
+        # Kita paksa minimal 1mo jika period yang diberikan adalah 7d.
+        fetch_period = period
+        if period == '7d':
+            fetch_period = '1mo'
+            
+        data = yf.download(ticker_yf, period=fetch_period, progress=False)
         
         if data.empty:
-            print(f'[SKIP] {ticker_yf} - no data')
+            print(f'[SKIP] {ticker_yf} - no data from yf')
             continue
 
         # Flatten MultiIndex if necessary
