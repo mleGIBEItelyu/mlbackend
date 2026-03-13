@@ -1,10 +1,9 @@
-"""Run ensemble training + backtest for multiple tickers."""
+"""Run ensemble training for multiple tickers."""
 import argparse
 import json
 import os
 from modeling import EnsembleModeling
 from features import prepare_features
-from backtest import run_financial_backtest
 from uploadHF import upload_model
 
 # Path Configuration
@@ -13,15 +12,13 @@ PROJECT_ROOT = os.path.dirname(BASE_DIR)
 TICKERS_JSON = os.path.join(PROJECT_ROOT, 'tickers.json')
 
 def main():
-    parser = argparse.ArgumentParser(description='Run multi-ticker training and backtest')
+    parser = argparse.ArgumentParser(description='Run multi-ticker ensemble training')
     parser.add_argument('--tickers', type=str, default=None,
                         help='Comma-separated list of tickers. If None, uses default list.')
     parser.add_argument('--trials', type=int, default=50,
                         help='Number of Optuna trials for training.')
     parser.add_argument('--cutoff', type=str, default='2024-01-01',
                         help='Date cutoff for train/test split.')
-    parser.add_argument('--no-backtest', action='store_true',
-                        help='If set, skips the financial backtest step.')
     parser.add_argument('--upload', action='store_true',
                         help='If set, uploads trained models to Hugging Face.')
     
@@ -72,10 +69,6 @@ def main():
         if args.upload:
             model_file = os.path.join(m.models_dir, f"{ticker}.pkl")
             upload_model(model_file, ticker)
-
-        # 3. Backtest
-        if not args.no_backtest:
-            run_financial_backtest(ticker)
         
         print()
 

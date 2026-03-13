@@ -77,4 +77,4 @@ jobs:
           if [ "${{ github.event.inputs.tickers }}" != "" ]; then
              TICKERS_TO_RUN="${{ github.event.inputs.tickers }}"
           fi
-          python training.py --tickers "$TICKERS_TO_RUN" --trials ${{ steps.config.outputs.trials }} --no-backtest --upload
+          python training.py --tickers "$TICKERS_TO_RUN" --trials ${{ steps.config.outputs.trials }} --upload
