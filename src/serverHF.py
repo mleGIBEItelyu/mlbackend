@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from features import prepare_features
-from hf_utils import download_model
+from uploadHF import download_model
 
 # ============================================================
 #  KONFIGURASI

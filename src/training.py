@@ -5,7 +5,7 @@ import os
 from modeling import EnsembleModeling
 from features import prepare_features
 from backtest import run_financial_backtest
-from hf_utils import upload_model
+from uploadHF import upload_model
 
 # Path Configuration
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
