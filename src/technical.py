@@ -43,11 +43,11 @@ def scrape_technical(ticker_list=None, period='max'):
         ticker_code = ticker_yf.replace(suffix, '')
         
         # Download data berdasarkan period yang diminta
-        # Jika period terlalu pendek (e.g. 7d), indikator window 20 tidak akan terhitung.
-        # Kita paksa minimal 1mo jika period yang diberikan adalah 7d.
+        # Jika period terlalu pendek (e.g. 7d, 1mo), indikator window 20 tidak akan terhitung.
+        # Kita paksa minimal 3mo agar ada buffer yang cukup untuk indikator.
         fetch_period = period
-        if period == '7d':
-            fetch_period = '1mo'
+        if period in ['7d', '1mo']:
+            fetch_period = '3mo'
             
         data = yf.download(ticker_yf, period=fetch_period, progress=False)
         
