@@ -12,9 +12,7 @@ from features import prepare_features
 warnings.filterwarnings("ignore")
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-# ============================================================
-#  KONFIGURASI
-# ============================================================
+
 TECH_WEIGHT = 0.85       # Bobot model teknikal
 FUND_WEIGHT = 0.15       # Bobot model fundamental (bias arah)
 N_ENSEMBLE = 10          # Jumlah model per grup (ensemble)
@@ -122,7 +120,7 @@ class EnsembleModeling:
             return np.mean(errors)
 
         study = optuna.create_study(direction="minimize")
-        study.optimize(objective, n_trials=N_OPTUNA_TRIALS)
+        study.optimize(objective, n_trials=trials)
         print(f"  Best {label} RMSE: {study.best_value:.4f}")
         return study.best_params
 
@@ -145,8 +143,11 @@ class EnsembleModeling:
         preds = np.array([m.predict(X) for m in models])
         return preds.mean(axis=0)
 
-    def train(self, X_tech_train, X_fund_train, y_train):
+    def train(self, X_tech_train, X_fund_train, y_train, n_trials=None):
         """Full training pipeline: tune + ensemble untuk kedua grup."""
+        if n_trials is not None:
+            self.n_trials = n_trials
+            
         # 1. Tune & Train Technical Models
         self.best_tech_params = self._tune(X_tech_train, y_train, label="TECHNICAL")
         self.tech_models = self._train_ensemble(X_tech_train, y_train, self.best_tech_params, label="TECHNICAL")
@@ -188,7 +189,7 @@ class EnsembleModeling:
         print(f"  Tech Weight  : {TECH_WEIGHT*100:.0f}% ({N_ENSEMBLE} models)")
         print(f"  Fund Weight  : {FUND_WEIGHT*100:.0f}% ({N_ENSEMBLE} models)")
         print(f"  Total Models : {N_ENSEMBLE * 2}")
-        print(f"  Optuna Trials: {N_OPTUNA_TRIALS}")
+        print(f"  Optuna Trials: {self.n_trials}")
         print(f"{'='*50}")
         print(f"  MAE  : {mae:.4f}")
         print(f"  RMSE : {rmse:.4f}")
